@@ -1,0 +1,55 @@
+import logging  #Hata ve bilgi kayıtlarını tutmak için logging modülü ekleniyor
+import sqlite3  #SQLite veritabanı işlemleri için sqlite3 modülü ekleniyor
+import requests  # HTTP istekleri yapmak için requests modülü ekleniyor
+from telegram import Update  # Telegram güncellemelerini işlemek için Update sınıfı ekleniyor
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext  # Telegram bot komutları ve işleyicileri için gerekli sınıflar ekleniyor
+
+#Veritabanı İşlemleri
+def vt_olustur():  # Veritabanını oluşturur veya var olan veritabanını açar
+    baglanti = sqlite3.connect("crypto_bot.db")  # "crypto_bot.db" adlı veritabanına bağlantı oluşturur
+    imlec = baglanti.cursor()  # Veritabanında sorgu çalıştırmak için imleç (cursor) oluşturur
+    imlec.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY,coins TEXT investments TEXT)''')  # Eğer "users" adlı tablo yoksa, oluşturur
+    baglanti.commit()  # Yapılan değişiklikleri kaydeder
+    baglanti.close()  # Veritabanı bağlantısını kapatır
+    
+def kullanici_coinlerini_ayarla(user_id, coinler):  # Kullanıcının coin bilgilerini veritabanına kaydeder
+    baglanti = sqlite3.connect("crypto_bot.db")  # Veritabanına bağlantı oluşturur
+    imlec = baglanti.cursor()  # Sorgular çalıştırmak için imleç oluşturur
+    coinler_string = ",".join(coinler)  # Coin listesini virgülle ayrılmış bir stringe dönüştürür
+    imlec.execute("INSERT OR REPLACE INTO users (user_id, coins, investments) VALUES (?, ?, ?)", 
+              (user_id, coinler_string, ""))  # Kullanıcı bilgilerini ekler veya günceller
+    baglanti.commit()  # Yapılan değişiklikleri veritabanına kaydeder
+    baglanti.close()  # Veritabanı bağlantısını kapatır
+
+#CoinGecko API Entegrasyonu hazır kod 
+def coin_fiyati_al(coin_id):  
+    api_key = "CG-Uv5An6gQboB97LvNxSHH7swF"  
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"  
+    headers = {"Authorization": f"Bearer {api_key}"} 
+    try:
+        response = requests.get(url, headers=headers)  
+        data = response.json() 
+        return data[coin_id]['usd']  
+    except Exception as e:  
+        logging.error(f"API Hatası: {e}") 
+        return None  
+
+#Telegram Bot Komutları
+def baslat(update: Update, context: CallbackContext):  
+    update.message.reply_text("Kripto Analiz Botu aktif! /coin_ekle ile coin ekleyin.")  # Kullanıcıya aktif olduğu ile alakalı bildirim gönderme
+def coin_ekle(update: Update, context: CallbackContext):  #coin ekleme komutu
+    user_input = update.message.text.split("/coin_ekle ")[1]  #kullanıcının gönderdiği mesajdan coin bilgilerini alma
+    coinler = [coin.strip() for coin in user_input.split(",")]  #coin bilgilerini liste haline getirme
+    kullanici_coinlerini_ayarla(update.message.from_user.id, coinler)  #coin bilgilerini veritabanına kaydeder
+    update.message.reply_text(f"Coinler kaydedildi: {', '.join(coinler)}")  #coinlerin kaydedildiğini bildirimi
+
+def main():  #botun ana çalışma fonksiyonu
+    vt_olustur()  #veritabanını açma
+    guncelleme = Updater(token="8000295300:AAGA7r7RBumpUQQ0UD1lQ95KF2PzWhdVkbE", use_context=True)  #telegram bot tokeni ile guncelleme nesnesi oluşturur
+    dispatcher = guncelleme.dispatcher  #mesaj dispatcher alır
+    dispatcher.add_handler(CommandHandler("baslat", baslat))  #/baslat komutu için dispatcher ekler
+    dispatcher.add_handler(CommandHandler("coin_ekle", coin_ekle))  #/coin_ekle komutu için dispatcher ekler
+    guncelleme.start_polling()  #botun sürekli mesajları kontrol etmesini sağlar 
+    guncelleme.idle()  #bot kapatılana kadar çalışmaya devam eder
+
+if __name__ == "__main__":  main()#bu dosya doğrudan çalıştırıldığında ana fonksiyonu çağırarak botu başlatır
