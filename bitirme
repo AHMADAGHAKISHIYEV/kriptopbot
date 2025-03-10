@@ -30,7 +30,7 @@ def coin_ekle(update: Update, context: CallbackContext):  #coin ekleme komutu
 
 def main():  #botun ana çalışma fonksiyonu
     vt_olustur()
-    guncelleme = Updater(token="8000295300:AAGA7r7RBumpUQQ0UD1lQ95KF2PzWhdVkbE", use_context=True)  #telegram bot tokeni ile guncelleme nesnesi oluşturur
+    guncelleme = Updater(token="", use_context=True)  #telegram bot tokeni ile guncelleme nesnesi oluşturur
     dispatcher = guncelleme.dispatcher 
     dispatcher.add_handler(CommandHandler("baslat", baslat))  
     dispatcher.add_handler(CommandHandler("coin_ekle", coin_ekle))  
