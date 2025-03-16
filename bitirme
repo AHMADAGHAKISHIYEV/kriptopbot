@@ -3,7 +3,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext 
 
 #Veritabanı İşlemleri
-def vt_olustur():  #veritabanını oluşturur veya var olan veritabanını açar
+def vt_olustur():  #veritabanını oluşturur 
     baglanti = sqlite3.connect("crypto_bot.db")  #crypto_bot.db adlı veritabanına bağlantı oluşturma
     imlec = baglanti.cursor()  #veritabanında sorgu için imleç oluşturma
     imlec.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY,coins TEXT investments TEXT)''')  #eğer "users" adlı tablo yoksa, oluştur
